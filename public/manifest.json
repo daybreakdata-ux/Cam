@@ -1,0 +1,10 @@
+{
+  "name": "ONVIF Camera Grid",
+  "short_name": "ONVIF Grid",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "description": "Discover and view ONVIF IP cameras on your network",
+  "icons": []
+}

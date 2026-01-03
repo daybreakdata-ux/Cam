@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/discover",
+      "methods": ["POST"],
+      "dest": "/api/discover.js"
+    },
+    {
+      "src": "/api/snapshot",
+      "methods": ["GET"],
+      "dest": "/api/snapshot.js"
+    }
+  ]
+}

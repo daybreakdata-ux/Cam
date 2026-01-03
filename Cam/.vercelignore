@@ -1,0 +1,19 @@
+# This file specifies files and directories to ignore during the deployment process to Vercel.
+
+node_modules
+*.log
+*.env
+.DS_Store
+.vscode
+.idea
+*.tmp
+*.bak
+*.swp
+coverage
+dist
+build
+public/style.css.map
+public/index.html
+public/app.js
+public/*.css
+public/*.html

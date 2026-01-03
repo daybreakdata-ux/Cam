@@ -1,0 +1,6 @@
+# .vercelignore
+node_modules
+onvif-server
+onvif-pwa
+.git
+*.log

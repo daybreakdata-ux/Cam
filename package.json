@@ -1,0 +1,17 @@
+{
+  "name": "onvif-camera-grid",
+  "version": "1.0.0",
+  "description": "ONVIF Camera Discovery System - Vercel Deployment",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["onvif", "rtsp", "camera", "vercel"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shtw/node-onvif": "^1.0.0",
+    "fluent-ffmpeg": "^2.1.2"
+  }
+}
