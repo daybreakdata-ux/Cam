@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "public/**",
+      "src": "public/index.html",
       "use": "@vercel/static"
     },
     {
@@ -12,12 +12,19 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/api/discover",
+      "methods": ["POST"],
+      "dest": "/api/discover.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+      "src": "/api/snapshot",
+      "methods": ["GET"],
+      "dest": "/api/snapshot.js"
+    },
+    {
+      "src": "/api/stream",
+      "methods": ["GET"],
+      "dest": "/api/stream.js"
     }
   ]
 }

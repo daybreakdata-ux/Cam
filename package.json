@@ -1,17 +1,28 @@
 {
-  "name": "onvif-camera-grid",
+  "name": "Cam",
   "version": "1.0.0",
-  "description": "ONVIF Camera Discovery System - Vercel Deployment",
+  "description": "A web application for discovering and managing camera devices.",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
+    "start": "node api/discover.js",
+    "build": "echo 'Build step not defined'",
     "deploy": "vercel --prod"
   },
-  "keywords": ["onvif", "rtsp", "camera", "vercel"],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@shtw/node-onvif": "^0.1.1",
+    "express": "^4.17.1",
+    "cors": "^2.8.5",
     "node-fetch": "^2.6.7"
-  }
+  },
+  "devDependencies": {
+    "vercel": "^23.0.0"
+  },
+  "keywords": [
+    "camera",
+    "discovery",
+    "web",
+    "api"
+  ],
+  "author": "daybreakdata-ux",
+  "license": "MIT"
 }

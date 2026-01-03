@@ -1,76 +1,31 @@
-const { OnvifManager } = require('@shtw/node-onvif');
+const express = require('express');
+const fetch = require('node-fetch');
 
-// Shared ONVIF manager instance
-let onvifManager = null;
+const router = express.Router();
 
-async function getOnvifManager() {
-  if (!onvifManager) {
-    onvifManager = new OnvifManager();
-    await onvifManager.init();
-  }
-  return onvifManager;
-}
+// Endpoint to get a snapshot from a camera
+router.get('/snapshot', async (req, res) => {
+  const { rtspUrl } = req.query;
 
-module.exports = async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ ok: false, error: 'Method not allowed' });
-  }
-
-  const { xaddr, username, password } = req.query;
-  
-  if (!xaddr || !username || !password) {
-    return res.status(400).json({ 
-      ok: false, 
-      error: 'xaddr, username, and password query parameters required' 
-    });
+  if (!rtspUrl) {
+    return res.status(400).json({ error: 'RTSP URL is required' });
   }
 
   try {
-    const manager = await getOnvifManager();
-    
-    // Add device to manager
-    const device = await manager.add({
-      xaddr: xaddr,
-      user: username,
-      pass: password,
-    });
-
-    await device.init();
-
-    // Get snapshot URI from ONVIF
-    const snapshotUri = await device.services.media.getSnapshotUri({
-      ProfileToken: device.getCurrentProfile().token
-    });
-    
-    const snapshotUrl = snapshotUri.data.GetSnapshotUriResponse.MediaUri.Uri;
-    
-    // Fetch the snapshot image and proxy it
-    const fetch = require('node-fetch');
-    const response = await fetch(snapshotUrl);
+    // Fetch the snapshot from the camera
+    const response = await fetch(`http://camera-service/snapshot?rtspUrl=${encodeURIComponent(rtspUrl)}`);
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch snapshot: ${response.statusText}`);
+      throw new Error('Failed to fetch snapshot from camera');
     }
-    
-    const buffer = await response.buffer();
-    
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.send(buffer);
-    
-  } catch (e) {
-    console.error('Snapshot error:', e);
-    res.status(500).json({ ok: false, error: e.message });
+
+    const imageBuffer = await response.buffer();
+    res.set('Content-Type', 'image/jpeg');
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
-};
+});
+
+module.exports = router;

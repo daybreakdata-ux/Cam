@@ -16,6 +16,7 @@ const modalBody = document.getElementById('modalBody');
 // Show permission banner on load
 window.addEventListener('load', () => {
   permissionBanner.style.display = 'block';
+  permissionBanner.textContent = '🔒 This app requires network access to discover cameras on your local network. Click "Discover Cameras" to proceed.';
   setTimeout(() => {
     permissionBanner.style.display = 'none';
   }, 5000);
@@ -41,14 +42,14 @@ discoverBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Store credentials for snapshot requests
+  // Store credentials for stream requests
   currentUsername = username;
   currentPassword = password;
 
   // Show network access notification
   permissionBanner.style.display = 'block';
   permissionBanner.textContent = '🔍 Requesting network access to discover cameras...';
-  
+
   statusEl.textContent = "Discovering...";
   gridEl.innerHTML = "";
   actionsEl.style.display = 'none';
@@ -60,9 +61,9 @@ discoverBtn.addEventListener('click', async () => {
       body: JSON.stringify({ username, password, timeoutMs: 5000 })
     });
     const data = await resp.json();
-    
+
     permissionBanner.style.display = 'none';
-    
+
     if (!data.ok) throw new Error(data.error || "discover failed");
 
     statusEl.textContent = `Found ${data.devices.length} cameras`;
@@ -86,16 +87,16 @@ let currentPassword = '';
 function renderDevices(devs) {
   devices = devs;
   gridEl.innerHTML = "";
-  
+
   if (devs.length === 0) {
-    gridEl.innerHTML = '<div style="padding:2rem; text-align:center; color:#888;">No cameras found. Check your credentials and network connection.</div>';
+    gridEl.innerHTML = '<div style="padding:2rem; text-align:center; color:#666;">No cameras found. Check your credentials and network connection.</div>';
     return;
   }
 
   for (const d of devs) {
     const card = document.createElement('div');
     card.className = 'card';
-    
+
     // Construct stream URL
     const params = new URLSearchParams({
       xaddr: d.xaddr,
@@ -106,19 +107,21 @@ function renderDevices(devs) {
     const streamUrl = `${API_BASE}/api/stream?${params.toString()}`;
 
     card.innerHTML = `
-      <div><strong>${d.name || d.address}</strong></div>
-      <div class="video-container">
-        <img id="stream-${d.id}" 
-             alt="stream" 
-             src="${streamUrl}" 
-             onerror="handleStreamError(this)"
-             onclick="showCameraDetails('${d.id}')" 
-             title="Click for details" />
+      <div class="card-header">
+        <strong>${d.name || d.address}</strong>
         <div class="live-indicator">LIVE</div>
       </div>
-      <div class="meta">
-        IP: ${d.address}<br>
-        RTSP: <span style="font-size:0.7rem; word-break:break-all;">${d.rtspUrl}</span>
+      <div class="video-container">
+        <img id="stream-${d.id}"
+             alt="stream"
+             src="${streamUrl}"
+             onerror="handleStreamError(this)"
+             onclick="showCameraDetails('${d.id}')"
+             title="Click for details" />
+      </div>
+      <div class="card-meta">
+        <div>IP: ${d.address}</div>
+        <div class="rtsp-url">RTSP: ${d.rtspUrl}</div>
       </div>
       <div class="card-actions">
         <button onclick="showCameraDetails('${d.id}')">📋 Info</button>
@@ -162,10 +165,6 @@ window.handleStreamError = (img) => {
   }, 2000);
 };
 
-// Removed old snapshot logic
-function updateSnapshots() {} 
-
-
 // Show camera details in modal
 window.showCameraDetails = (deviceId) => {
   const device = devices.find(d => d.id === deviceId);
@@ -195,7 +194,7 @@ window.showCameraDetails = (deviceId) => {
         <span class="info-label">URL:</span>
         <span class="info-value">${device.rtspUrl}</span>
       </div>
-      <button onclick="copyToClipboard('${device.rtspUrl.replace(/'/g, "\\'")}', 'RTSP URL')" style="margin-top:0.5rem;">
+      <button onclick="copyRTSP('${deviceId}')" class="copy-btn">
         📋 Copy RTSP URL
       </button>
     </div>
@@ -210,7 +209,7 @@ window.showCameraDetails = (deviceId) => {
       </div>
     </div>
   `;
-  
+
   cameraModal.classList.add('active');
 };
 
@@ -258,7 +257,7 @@ document.getElementById('exportAllBtn').addEventListener('click', () => {
   if (devices.length === 0) return;
 
   let content = `# All Camera RTSP URLs\n# Generated: ${new Date().toISOString()}\n# Total Cameras: ${devices.length}\n\n`;
-  
+
   devices.forEach((d, i) => {
     content += `# Camera ${i + 1}: ${d.name || d.address}\n`;
     content += `${d.rtspUrl}\n\n`;
@@ -281,7 +280,7 @@ function exportBlueIrisConfig(deviceId = null) {
   if (cams.length === 0) return;
 
   let content = `# Blue Iris Camera Configuration\n# Generated: ${new Date().toISOString()}\n\n`;
-  
+
   cams.forEach((d, i) => {
     const camNum = deviceId ? '' : `${i + 1}_`;
     content += `[camera_${camNum}${d.address.replace(/\./g, '_')}]\n`;
@@ -313,7 +312,7 @@ function exportFrigateConfig(deviceId = null) {
   if (cams.length === 0) return;
 
   let content = `# Frigate Configuration (frigate.yml)\n# Generated: ${new Date().toISOString()}\n\ncameras:\n`;
-  
+
   cams.forEach((d) => {
     const camName = (d.name || d.address).toLowerCase().replace(/[^a-z0-9]/g, '_');
     content += `  ${camName}:\n`;
@@ -347,7 +346,7 @@ function exportHomeAssistantConfig(deviceId = null) {
   if (cams.length === 0) return;
 
   let content = `# Home Assistant Configuration (configuration.yaml)\n# Generated: ${new Date().toISOString()}\n\ncamera:\n`;
-  
+
   cams.forEach((d) => {
     const camName = (d.name || d.address).toLowerCase().replace(/[^a-z0-9]/g, '_');
     content += `  - platform: generic\n`;
@@ -372,7 +371,218 @@ function downloadFile(filename, content) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  
+
+  statusEl.textContent = `✓ Downloaded: ${filename}`;
+  setTimeout(() => statusEl.textContent = '', 3000);
+}
+
+// Show camera details in modal
+window.showCameraDetails = (deviceId) => {
+  const device = devices.find(d => d.id === deviceId);
+  if (!device) return;
+
+  modalTitle.textContent = device.name || device.address;
+  modalBody.innerHTML = `
+    <div class="info-section">
+      <h3>📹 Camera Information</h3>
+      <div class="info-line">
+        <span class="info-label">Name:</span>
+        <span class="info-value">${device.name || 'Unknown'}</span>
+      </div>
+      <div class="info-line">
+        <span class="info-label">IP Address:</span>
+        <span class="info-value">${device.address}</span>
+      </div>
+      <div class="info-line">
+        <span class="info-label">ONVIF URL:</span>
+        <span class="info-value">${device.xaddr}</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h3>📡 RTSP Stream</h3>
+      <div class="info-line">
+        <span class="info-label">URL:</span>
+        <span class="info-value">${device.rtspUrl}</span>
+      </div>
+      <button onclick="copyRTSP('${deviceId}')" class="copy-btn">
+        📋 Copy RTSP URL
+      </button>
+    </div>
+
+    <div class="info-section">
+      <h3>💾 Export Options</h3>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+        <button onclick="downloadCameraConfig('${deviceId}')">📄 Simple Config</button>
+        <button onclick="downloadBlueIrisConfig('${deviceId}')">Blue Iris</button>
+        <button onclick="downloadFrigateConfig('${deviceId}')">Frigate</button>
+        <button onclick="downloadHomeAssistantConfig('${deviceId}')">Home Assistant</button>
+      </div>
+    </div>
+  `;
+
+  cameraModal.classList.add('active');
+};
+
+// Copy RTSP URL to clipboard
+window.copyRTSP = (deviceId) => {
+  const device = devices.find(d => d.id === deviceId);
+  if (!device) return;
+  copyToClipboard(device.rtspUrl, 'RTSP URL');
+};
+
+// Copy to clipboard helper
+window.copyToClipboard = async (text, label = 'Text') => {
+  try {
+    await navigator.clipboard.writeText(text);
+    statusEl.textContent = `✓ ${label} copied to clipboard`;
+    setTimeout(() => statusEl.textContent = '', 3000);
+  } catch (e) {
+    console.error('Copy failed:', e);
+    statusEl.textContent = '✗ Copy failed';
+  }
+};
+
+// Download configuration file
+window.downloadCameraConfig = (deviceId) => {
+  const device = devices.find(d => d.id === deviceId);
+  if (!device) return;
+
+  const config = `# Camera Configuration
+# Generated: ${new Date().toISOString()}
+
+Name: ${device.name || 'Unknown'}
+IP Address: ${device.address}
+ONVIF URL: ${device.xaddr}
+RTSP URL: ${device.rtspUrl}
+
+# Use this RTSP URL in your camera software:
+${device.rtspUrl}
+`;
+
+  downloadFile(`camera_${device.address}_config.txt`, config);
+};
+
+// Export all cameras RTSP URLs
+document.getElementById('exportAllBtn').addEventListener('click', () => {
+  if (devices.length === 0) return;
+
+  let content = `# All Camera RTSP URLs\n# Generated: ${new Date().toISOString()}\n# Total Cameras: ${devices.length}\n\n`;
+
+  devices.forEach((d, i) => {
+    content += `# Camera ${i + 1}: ${d.name || d.address}\n`;
+    content += `${d.rtspUrl}\n\n`;
+  });
+
+  downloadFile('all_cameras_rtsp.txt', content);
+});
+
+// Export Blue Iris configuration
+document.getElementById('exportBlueIrisBtn').addEventListener('click', () => {
+  exportBlueIrisConfig();
+});
+
+window.downloadBlueIrisConfig = (deviceId) => {
+  exportBlueIrisConfig(deviceId);
+};
+
+function exportBlueIrisConfig(deviceId = null) {
+  const cams = deviceId ? [devices.find(d => d.id === deviceId)].filter(Boolean) : devices;
+  if (cams.length === 0) return;
+
+  let content = `# Blue Iris Camera Configuration\n# Generated: ${new Date().toISOString()}\n\n`;
+
+  cams.forEach((d, i) => {
+    const camNum = deviceId ? '' : `${i + 1}_`;
+    content += `[camera_${camNum}${d.address.replace(/\./g, '_')}]\n`;
+    content += `name=${d.name || d.address}\n`;
+    content += `ip=${d.address}\n`;
+    content += `rtsp=${d.rtspUrl}\n`;
+    content += `# Add this camera manually in Blue Iris:\n`;
+    content += `# 1. Right-click camera list > Add new camera\n`;
+    content += `# 2. Enter short name: ${d.name || d.address}\n`;
+    content += `# 3. Network IP: ${d.address}\n`;
+    content += `# 4. Main stream: ${d.rtspUrl}\n\n`;
+  });
+
+  const filename = deviceId ? `blueiris_${cams[0].address}_config.txt` : 'blueiris_all_cameras.txt';
+  downloadFile(filename, content);
+}
+
+// Export Frigate configuration
+document.getElementById('exportFrigateBtn').addEventListener('click', () => {
+  exportFrigateConfig();
+});
+
+window.downloadFrigateConfig = (deviceId) => {
+  exportFrigateConfig(deviceId);
+};
+
+function exportFrigateConfig(deviceId = null) {
+  const cams = deviceId ? [devices.find(d => d.id === deviceId)].filter(Boolean) : devices;
+  if (cams.length === 0) return;
+
+  let content = `# Frigate Configuration (frigate.yml)\n# Generated: ${new Date().toISOString()}\n\ncameras:\n`;
+
+  cams.forEach((d) => {
+    const camName = (d.name || d.address).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    content += `  ${camName}:\n`;
+    content += `    ffmpeg:\n`;
+    content += `      inputs:\n`;
+    content += `        - path: ${d.rtspUrl}\n`;
+    content += `          roles:\n`;
+    content += `            - detect\n`;
+    content += `            - record\n`;
+    content += `    detect:\n`;
+    content += `      width: 1920\n`;
+    content += `      height: 1080\n`;
+    content += `      fps: 5\n\n`;
+  });
+
+  const filename = deviceId ? `frigate_${cams[0].address}_config.yml` : 'frigate_all_cameras.yml';
+  downloadFile(filename, content);
+}
+
+// Export Home Assistant configuration
+document.getElementById('exportHomeAssistantBtn').addEventListener('click', () => {
+  exportHomeAssistantConfig();
+});
+
+window.downloadHomeAssistantConfig = (deviceId) => {
+  exportHomeAssistantConfig(deviceId);
+};
+
+function exportHomeAssistantConfig(deviceId = null) {
+  const cams = deviceId ? [devices.find(d => d.id === deviceId)].filter(Boolean) : devices;
+  if (cams.length === 0) return;
+
+  let content = `# Home Assistant Configuration (configuration.yaml)\n# Generated: ${new Date().toISOString()}\n\ncamera:\n`;
+
+  cams.forEach((d) => {
+    const camName = (d.name || d.address).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    content += `  - platform: generic\n`;
+    content += `    name: ${d.name || d.address}\n`;
+    content += `    stream_source: ${d.rtspUrl}\n`;
+    content += `    still_image_url: http://YOUR_SERVER/api/snapshot?rtspUrl=${encodeURIComponent(d.rtspUrl)}\n`;
+    content += `    verify_ssl: false\n\n`;
+  });
+
+  const filename = deviceId ? `homeassistant_${cams[0].address}_config.yaml` : 'homeassistant_all_cameras.yaml';
+  downloadFile(filename, content);
+}
+
+// Download file helper
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
   statusEl.textContent = `✓ Downloaded: ${filename}`;
   setTimeout(() => statusEl.textContent = '', 3000);
 }

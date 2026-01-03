@@ -42,7 +42,6 @@ module.exports = async (req, res) => {
   try {
     const manager = await getOnvifManager();
     discoveredDevices = [];
-    
     const cams = await manager.discovery.probe({ timeout: timeoutMs });
 
     const results = [];

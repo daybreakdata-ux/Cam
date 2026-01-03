@@ -1,183 +1,61 @@
-# ONVIF Camera Discovery System
+# Cam Project
 
-A complete ONVIF camera discovery and monitoring system with serverless backend and PWA frontend, deployable to Vercel.
-
-## 🚀 Quick Deploy to Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/daybreakdata-ux/Cam)
-
-### Method 1: One-Click Deploy
-1. Click the deploy button above
-2. Connect your GitHub account
-3. Deploy!
-
-### Method 2: CLI Deploy
-```bash
-npm install
-npx vercel --prod
-```
+This project is a web application for discovering and managing camera devices. It provides a user-friendly interface for interacting with cameras, retrieving snapshots, and exporting configuration files.
 
 ## Project Structure
 
 ```
-/workspaces/Cam/
-├── api/                   # Vercel Serverless Functions
-│   ├── discover.js       # POST /api/discover - Camera discovery
-│   ├── devices.js        # GET /api/devices - List devices  
-│   └── snapshot.js       # GET /api/snapshot - Camera snapshots via ONVIF
-├── public/               # Frontend PWA
-│   ├── index.html
-│   ├── manifest.json
-│   ├── app.js
-│   └── style.css
-├── package.json          # Dependencies for Vercel
-├── vercel.json           # Vercel configuration
-├── .vercelignore         # Files to exclude from deployment
-└── README.md
+Cam
+├── api
+│   ├── discover.js        # API endpoint for discovering cameras
+│   └── snapshot.js        # API endpoint for retrieving camera snapshots
+├── public
+│   ├── index.html         # Main HTML file for the web application
+│   ├── app.js             # Client-side JavaScript for managing interactions
+│   └── style.css          # Styles for the web application
+├── package.json           # npm configuration file
+├── vercel.json            # Vercel deployment configuration
+├── .vercelignore          # Files to ignore during deployment
+└── README.md              # Project documentation
 ```
 
-## Features
+## Setup Instructions
 
-- **WS-Discovery**: Discovers ONVIF cameras on the LAN via UDP multicast
-- **RTSP URL Retrieval**: Gets RTSP stream URLs from discovered cameras
-- **ONVIF Snapshots**: Displays camera snapshots using native ONVIF snapshot capability
-- **Serverless Architecture**: Runs on Vercel with zero-config deployment
-- **PWA Support**: Installable web app with offline manifest
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/daybreakdata-ux/Cam.git
+   cd Cam
+   ```
 
-## API Endpoints
+2. **Install Dependencies**
+   Make sure you have Node.js installed. Then run:
+   ```bash
+   npm install
+   ```
 
-### POST /api/discover
-Discover ONVIF cameras on the network.
+3. **Run the Application**
+   You can start the application locally using:
+   ```bash
+   npm start
+   ```
 
-**Body:**
-```json
-{
-  "username": "admin",
-  "password": "password",
-  "timeoutMs": 5000
-}
-```
-
-**Response:**
-```json
-{
-  "ok": true,
-  "devices": [
-    {
-      "id": "device-id",
-      "name": "Camera Name",
-      "address": "192.168.1.100",
-      "xaddr": "http://192.168.1.100:80/onvif/device_service",
-      "rtspUrl": "rtsp://192.168.1.100:554/stream1"
-    }
-  ]
-}
-```
-
-### GET /api/devices
-Get list of previously discovered devices.
-
-### GET /api/snapshot?rtspUrl=<url>
-Get a JPEG snapshot from an RTSP stream.
-
-## Local Development
-
-### Option 1: Vercel Dev Server (Recommended)
-
-```bash
-npm install
-vercel dev
-```
-
-Open http://localhost:3000
-
-### Option 2: Standalone Mode
-
-**Backend:**
-```bash
-cd onvif-server
-npm install
-node server.js
-```
-
-**Frontend:**
-```bash
-cd onvif-pwa
-npx serve .
-```
+4. **Access the Application**
+   Open your browser and navigate to `http://localhost:3000` to access the application.
 
 ## Usage
 
-1. Open the app (deployed or local)
-2. Enter your camera's ONVIF username and password
-3. Click "Discover Cameras"
-4. View discovered cameras with live snapshots
+- Enter your camera credentials in the provided fields and click the "Discover" button to find available cameras.
+- Click on a camera to view its details, copy the RTSP URL, or download its configuration.
+- Use the export options to download configurations for various platforms like Blue Iris, Frigate, and Home Assistant.
 
-## Important Notes
+## Deployment
 
-### Network Requirements
-- **ONVIF Discovery** requires UDP multicast (port 3702) on your local network
-- When deployed to Vercel, discovery works best from devices on the same network as the cameras
-- For remote access, you may need to manually configure camera IPs
-
-### FFmpeg Dependency
-- The snapshot endpoint requires FFmpeg to convert RTSP streams to JPEG
-- **Vercel Limitation**: FFmpeg is not available by default in Vercel's serverless environment
-- **Solutions**:
-  - Use a custom FFmpeg layer (see [Vercel FFmpeg guide](https://github.com/ericnograles/vercel-ffmpeg))
-  - Deploy to a platform with FFmpeg support (AWS Lambda with layer, Docker, VPS)
-  - Use camera's native snapshot URL if available
-
-### Serverless Limitations
-- State (discovered devices) resets between serverless cold starts
-- Functions have a 10-second execution timeout on free tier (30s on Pro)
-- UDP multicast may not work reliably in some serverless environments
-
-## Alternative Deployment Options
-
-### Docker (Full Feature Support)
-```bash
-docker build -t onvif-camera-grid .
-docker run -p 8080:8080 --network host onvif-camera-grid
-```
-
-### VPS/Traditional Server
-```bash
-cd onvif-server
-npm install
-node server.js
-```
-
-## Troubleshooting
-
-### No cameras discovered
-- Verify you're on the same network as the cameras
-- Check firewall allows UDP port 3702
-- Verify ONVIF credentials are correct
-- Ensure cameras have ONVIF enabled
-
-### Snapshots not loading on Vercel
-- FFmpeg is not available by default
-- Use custom FFmpeg layer or alternative deployment
-- Check camera documentation for native snapshot URLs
-
-### CORS errors
-- Ensure you're accessing the app via the correct domain
-- API functions include CORS headers by default
-
-## Configuration
-
-### Environment Variables
-Create `.env.local` for local development:
-```bash
-# Optional configuration
-ONVIF_TIMEOUT=5000
-```
-
-## License
-
-ISC
+This project is configured for deployment on Vercel. To deploy, simply push your changes to the `main` branch, and Vercel will automatically build and deploy the application.
 
 ## Contributing
 
-Contributions welcome! Please open an issue or PR.
+Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
