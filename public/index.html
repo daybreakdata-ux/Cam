@@ -15,11 +15,13 @@
     button.secondary:hover { background:#666; color:#fff; }
     main { padding:1rem; }
     .actions { display:flex; gap:0.5rem; margin:1rem; flex-wrap:wrap; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.75rem; }
-    .card { background:#181818; border-radius:6px; padding:0.5rem; border:1px solid #333; display:flex; flex-direction:column; gap:0.4rem; position:relative; }
-    .card img { width:100%; border-radius:4px; background:#000; object-fit:cover; min-height:150px; cursor:pointer; }
-    .card .card-actions { display:flex; gap:0.3rem; }
-    .card .card-actions button { font-size:0.75rem; padding:0.3rem 0.5rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1rem; }
+    .card { background:#181818; border-radius:8px; padding:0.75rem; border:1px solid #333; display:flex; flex-direction:column; gap:0.5rem; position:relative; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .video-container { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; overflow:hidden; }
+    .video-container img { width:100%; height:100%; object-fit:contain; }
+    .live-indicator { position:absolute; top:8px; right:8px; background:rgba(255,0,0,0.8); color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; pointer-events:none; }
+    .card .card-actions { display:flex; gap:0.5rem; margin-top:auto; }
+    .card .card-actions button { flex:1; font-size:0.8rem; padding:0.4rem; }
     .meta { font-size:0.8rem; color:#ccc; }
     .note { padding: 1rem; background:#222; border-left: 3px solid #0af; margin: 1rem; font-size:0.9rem; }
     .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; overflow:auto; }

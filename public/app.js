@@ -41,6 +41,10 @@ discoverBtn.addEventListener('click', async () => {
     return;
   }
 
+  // Store credentials for snapshot requests
+  currentUsername = username;
+  currentPassword = password;
+
   // Show network access notification
   permissionBanner.style.display = 'block';
   permissionBanner.textContent = '🔍 Requesting network access to discover cameras...';
@@ -65,7 +69,7 @@ discoverBtn.addEventListener('click', async () => {
     renderDevices(data.devices);
     if (data.devices.length > 0) {
       actionsEl.style.display = 'flex';
-      startSnapshotRefresh();
+      startStreams();
     }
   } catch (e) {
     console.error(e);
@@ -75,7 +79,9 @@ discoverBtn.addEventListener('click', async () => {
 });
 
 let devices = [];
-let refreshInterval = null;
+let streamRefreshInterval = null;
+let currentUsername = '';
+let currentPassword = '';
 
 function renderDevices(devs) {
   devices = devs;
@@ -89,9 +95,27 @@ function renderDevices(devs) {
   for (const d of devs) {
     const card = document.createElement('div');
     card.className = 'card';
+    
+    // Construct stream URL
+    const params = new URLSearchParams({
+      xaddr: d.xaddr,
+      username: currentUsername,
+      password: currentPassword,
+      t: Date.now()
+    });
+    const streamUrl = `${API_BASE}/api/stream?${params.toString()}`;
+
     card.innerHTML = `
       <div><strong>${d.name || d.address}</strong></div>
-      <img id="snap-${d.id}" alt="snapshot" src="" onerror="this.style.display='none'" onclick="showCameraDetails('${d.id}')" title="Click for details" />
+      <div class="video-container">
+        <img id="stream-${d.id}" 
+             alt="stream" 
+             src="${streamUrl}" 
+             onerror="handleStreamError(this)"
+             onclick="showCameraDetails('${d.id}')" 
+             title="Click for details" />
+        <div class="live-indicator">LIVE</div>
+      </div>
       <div class="meta">
         IP: ${d.address}<br>
         RTSP: <span style="font-size:0.7rem; word-break:break-all;">${d.rtspUrl}</span>
@@ -106,27 +130,41 @@ function renderDevices(devs) {
   }
 }
 
-function startSnapshotRefresh() {
+function startStreams() {
   // Clear any existing interval
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
+  if (streamRefreshInterval) {
+    clearInterval(streamRefreshInterval);
   }
 
-  // Update snapshots immediately
-  updateSnapshots();
-
-  // Then refresh every 3 seconds
-  refreshInterval = setInterval(updateSnapshots, 3000);
+  // Refresh streams every 50 seconds to prevent Vercel timeout freeze
+  streamRefreshInterval = setInterval(refreshAllStreams, 50000);
 }
 
-function updateSnapshots() {
-  for (const d of devices) {
-    const img = document.getElementById(`snap-${d.id}`);
-    if (!img) continue;
-    // Pass rtspUrl as query parameter since we don't have persistent state in serverless
-    img.src = `${API_BASE}/api/snapshot?rtspUrl=${encodeURIComponent(d.rtspUrl)}&t=${Date.now()}`;
-  }
+function refreshAllStreams() {
+  console.log('Refreshing streams to prevent timeout...');
+  const imgs = document.querySelectorAll('img[id^="stream-"]');
+  imgs.forEach(img => {
+    const url = new URL(img.src);
+    url.searchParams.set('t', Date.now());
+    img.src = url.toString();
+  });
 }
+
+window.handleStreamError = (img) => {
+  console.log('Stream error, retrying...', img.id);
+  // Prevent rapid loop
+  img.onerror = null;
+  setTimeout(() => {
+    const url = new URL(img.src);
+    url.searchParams.set('t', Date.now());
+    img.src = url.toString();
+    img.onerror = function() { handleStreamError(this); };
+  }, 2000);
+};
+
+// Removed old snapshot logic
+function updateSnapshots() {} 
+
 
 // Show camera details in modal
 window.showCameraDetails = (deviceId) => {

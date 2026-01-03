@@ -6,13 +6,16 @@ A complete ONVIF camera discovery and monitoring system with serverless backend 
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/daybreakdata-ux/Cam)
 
-1. Click the deploy button above or run:
+### Method 1: One-Click Deploy
+1. Click the deploy button above
+2. Connect your GitHub account
+3. Deploy!
+
+### Method 2: CLI Deploy
 ```bash
 npm install
-vercel --prod
+npx vercel --prod
 ```
-
-2. Your app will be live at `https://your-project.vercel.app`
 
 ## Project Structure
 
@@ -20,16 +23,16 @@ vercel --prod
 /workspaces/Cam/
 ├── api/                   # Vercel Serverless Functions
 │   ├── discover.js       # POST /api/discover - Camera discovery
-│   ├── devices.js        # GET /api/devices - List devices
-│   └── snapshot.js       # GET /api/snapshot - Camera snapshots
+│   ├── devices.js        # GET /api/devices - List devices  
+│   └── snapshot.js       # GET /api/snapshot - Camera snapshots via ONVIF
 ├── public/               # Frontend PWA
 │   ├── index.html
 │   ├── manifest.json
-│   └── app.js
-├── onvif-server/         # Legacy standalone backend (for local development)
-├── onvif-pwa/            # Legacy standalone frontend (for local development)
-├── package.json          # Root dependencies for Vercel
+│   ├── app.js
+│   └── style.css
+├── package.json          # Dependencies for Vercel
 ├── vercel.json           # Vercel configuration
+├── .vercelignore         # Files to exclude from deployment
 └── README.md
 ```
 
@@ -37,7 +40,7 @@ vercel --prod
 
 - **WS-Discovery**: Discovers ONVIF cameras on the LAN via UDP multicast
 - **RTSP URL Retrieval**: Gets RTSP stream URLs from discovered cameras
-- **Snapshot View**: Displays camera snapshots with auto-refresh
+- **ONVIF Snapshots**: Displays camera snapshots using native ONVIF snapshot capability
 - **Serverless Architecture**: Runs on Vercel with zero-config deployment
 - **PWA Support**: Installable web app with offline manifest
 

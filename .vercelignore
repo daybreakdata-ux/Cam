@@ -1,6 +1,9 @@
 # .vercelignore
 node_modules
+Cam
 onvif-server
 onvif-pwa
 .git
 *.log
+.gitignore
+README.md

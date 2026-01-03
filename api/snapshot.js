@@ -1,7 +1,16 @@
-const ffmpeg = require('fluent-ffmpeg');
+const { OnvifManager } = require('@shtw/node-onvif');
 
-// Note: This requires ffmpeg to be available in the Vercel environment
-// Vercel doesn't include ffmpeg by default, so this may need alternative solutions
+// Shared ONVIF manager instance
+let onvifManager = null;
+
+async function getOnvifManager() {
+  if (!onvifManager) {
+    onvifManager = new OnvifManager();
+    await onvifManager.init();
+  }
+  return onvifManager;
+}
+
 module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -18,25 +27,48 @@ module.exports = async (req, res) => {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const { id, rtspUrl } = req.query;
+  const { xaddr, username, password } = req.query;
   
-  if (!rtspUrl) {
-    return res.status(400).json({ ok: false, error: 'rtspUrl query parameter required' });
+  if (!xaddr || !username || !password) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: 'xaddr, username, and password query parameters required' 
+    });
   }
 
   try {
-    res.setHeader('Content-Type', 'image/jpeg');
+    const manager = await getOnvifManager();
     
-    ffmpeg(rtspUrl)
-      .frames(1)
-      .format('mjpeg')
-      .on('error', (err) => {
-        console.error('FFmpeg error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ ok: false, error: err.message });
-        }
-      })
-      .pipe(res, { end: true });
+    // Add device to manager
+    const device = await manager.add({
+      xaddr: xaddr,
+      user: username,
+      pass: password,
+    });
+
+    await device.init();
+
+    // Get snapshot URI from ONVIF
+    const snapshotUri = await device.services.media.getSnapshotUri({
+      ProfileToken: device.getCurrentProfile().token
+    });
+    
+    const snapshotUrl = snapshotUri.data.GetSnapshotUriResponse.MediaUri.Uri;
+    
+    // Fetch the snapshot image and proxy it
+    const fetch = require('node-fetch');
+    const response = await fetch(snapshotUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch snapshot: ${response.statusText}`);
+    }
+    
+    const buffer = await response.buffer();
+    
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(buffer);
+    
   } catch (e) {
     console.error('Snapshot error:', e);
     res.status(500).json({ ok: false, error: e.message });
